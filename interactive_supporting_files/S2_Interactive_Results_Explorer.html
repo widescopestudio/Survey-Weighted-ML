@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S2 Interactive Results Explorer — SAFE-XAI Five-Country Validation</title>
+<style>
+  :root {
+    --bg: #ffffff; --bg-secondary: #f4f3f0; --text: #1a1a18; --text-secondary: #5f5e5a;
+    --text-tertiary: #888780; --border: #d3d1c7;
+    --blue: #185fa5; --blue-bg: #e6f1fb; --blue-bar: #378add;
+    --teal: #0f6e56; --teal-bg: #e1f5ee; --teal-bar: #1d9e75;
+    --coral: #993c1d; --coral-bg: #faece7; --coral-bar: #d85a30;
+    --pink: #993556; --pink-bg: #fbeaf0; --pink-bar: #d4537e;
+    --amber: #854f0b; --amber-bg: #faeeda; --amber-bar: #ef9f27;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg-secondary: #2a2a27; --text: #ece9e0; --text-secondary: #b4b2a9;
+      --text-tertiary: #888780; --border: #444441;
+      --blue: #85b7eb; --blue-bg: #0c447c; --blue-bar: #378add;
+      --teal: #5dcaa5; --teal-bg: #085041; --teal-bar: #1d9e75;
+      --coral: #f0997b; --coral-bg: #712b13; --coral-bar: #d85a30;
+      --pink: #ed93b1; --pink-bg: #72243e; --pink-bar: #d4537e;
+      --amber: #fac775; --amber-bg: #412402; --amber-bar: #ef9f27;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); max-width: 820px; margin: 0 auto;
+    padding: 2rem 1.5rem 4rem; line-height: 1.6;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+  h2 { font-size: 17px; font-weight: 600; margin: 2rem 0 0.75rem; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 1.5rem; }
+  .card { background: var(--bg-secondary); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .country-tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .country-tabs button {
+    font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer; font-weight: 500;
+  }
+  .country-tabs button.active { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--bg-secondary); border-radius: 10px; padding: 1rem; }
+  .metric-label { font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; }
+  .metric-value { font-size: 22px; font-weight: 600; margin: 0; }
+  .metric-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-label { font-size: 13px; width: 130px; flex-shrink: 0; text-align: right; }
+  .bar-track { flex: 1; height: 22px; background: var(--bg); border-radius: 5px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 8px; transition: width 0.4s ease; }
+  .bar-fill span { font-size: 11px; font-weight: 600; color: white; }
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .toggle-row label { font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .slider-row { display: flex; align-items: center; gap: 14px; margin: 1rem 0; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .slider-val { font-size: 14px; font-weight: 600; min-width: 56px; text-align: right; }
+  .note { font-size: 12px; color: var(--text-tertiary); margin-top: 0.5rem; }
+  .footer-note { font-size: 12px; color: var(--text-tertiary); margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .sig-yes { background: var(--coral-bg); color: var(--coral); }
+  .sig-no { background: var(--bg); color: var(--text-tertiary); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<h1>S2 Interactive results explorer</h1>
+<p class="subtitle">Five-country external validation of SAFE-XAI for childhood stunting prediction. Explore model performance, SHAP feature importance, fairness calibration, and the model-implied maternal-height scenario analysis for each country. All values match the main manuscript text and Tables 3, 9&ndash;11, 13&ndash;14.</p>
+
+<div class="country-tabs" id="country-tabs"></div>
+
+<div class="metric-grid" id="metric-grid"></div>
+
+<div class="card">
+  <h2 style="margin-top:0">Top-5 SHAP feature importance</h2>
+  <div id="shap-bars"></div>
+  <p class="note" id="shap-note"></p>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h2 style="margin-top:0">Fairness calibration</h2>
+    <div class="toggle-row">
+      <label><input type="checkbox" id="fairness-toggle" checked onchange="renderFairness()"> Show calibrated values</label>
+    </div>
+    <div id="fairness-bars"></div>
+    <p class="note" id="fairness-note"></p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Ablation study</h2>
+    <div id="ablation-bars"></div>
+    <p class="note">AUC for the full model versus three single-component removals. Lower bars indicate that component's contribution was larger.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Model-implied scenario: maternal height increase</h2>
+  <p class="note" style="margin-top:0">Ceteris-paribus projection, not a causal estimate &mdash; see manuscript Methods and Discussion.</p>
+  <div class="slider-row">
+    <label for="height-slider" style="font-size:13px;white-space:nowrap">Hypothetical increase:</label>
+    <input type="range" id="height-slider" min="1" max="3" value="2" step="1" oninput="renderScenario()">
+    <span class="slider-val" id="height-val">+2 cm</span>
+  </div>
+  <div id="scenario-result"></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Spatial analysis</h2>
+  <div id="spatial-result"></div>
+</div>
+
+<div class="footer-note">
+  This interactive file accompanies "Survey-weighted machine learning with maternal anthropometry and fairness constraints for childhood stunting: A five-country South and Southeast Asian DHS validation, 2011&ndash;2022" (Saha &amp; Rana, submitted to PLOS Global Public Health, 2026). Bangladesh values shown for reference are from the original development cohort (Table 5; AUC 0.699). Indonesia is not shown as it was excluded from modeling (anthropometric module not fielded in the 2017 survey round). This file requires no internet connection or external dependencies and can be opened directly in any modern web browser.
+</div>
+
+<script>
+const DATA = {"countries": ["Cambodia", "Myanmar", "Nepal", "Pakistan"], "bangladesh": {"auc": 0.699, "auc_ci": [0.658, 0.737], "brier": 0.16, "shap_top5": [{"feature": "Maternal height", "value": 0.306}, {"feature": "Child age", "value": 0.226}, {"feature": "ANC visits", "value": 0.118}, {"feature": "Birth interval", "value": 0.096}, {"feature": "Maternal BMI", "value": 0.09}]}, "per_country": {"Cambodia": {"auc": 0.617, "auc_ci": [0.553, 0.686], "brier": 0.178, "n_train": 3037, "n_test": 760, "shap_top5": [{"feature": "Wealth factor", "value": 0.187}, {"feature": "Child age", "value": 0.138}, {"feature": "Maternal height", "value": 0.134}, {"feature": "Small at birth", "value": 0.071}, {"feature": "Maternal BMI", "value": 0.071}], "mat_height_rank": 3, "dpd_uncal": 0.324, "dpd_cal": 0.005, "eod_uncal": 0.314, "eod_cal": 0.017, "dpd_reduction": 98.4, "eod_reduction": 94.7, "morans_i": -0.062, "morans_p": 0.479, "obs_pred_r": 0.726, "auc_full": 0.617, "auc_no_anthro": 0.59, "auc_no_ga": 0.577, "auc_no_weights": 0.652, "counterfactual": {"1": 2.3, "2": 5.2, "3": 8.1}}, "Myanmar": {"auc": 0.727, "auc_ci": [0.683, 0.77], "brier": 0.199, "n_train": 3370, "n_test": 843, "shap_top5": [{"feature": "Child age", "value": 0.513}, {"feature": "Maternal height", "value": 0.215}, {"feature": "Wealth factor", "value": 0.176}, {"feature": "Maternal BMI", "value": 0.093}, {"feature": "Birth interval", "value": 0.08}], "mat_height_rank": 2, "dpd_uncal": 0.23, "dpd_cal": 0.036, "eod_uncal": 0.243, "eod_cal": 0.019, "dpd_reduction": 84.4, "eod_reduction": 92.3, "morans_i": -0.195, "morans_p": 0.167, "obs_pred_r": 0.772, "auc_full": 0.727, "auc_no_anthro": 0.692, "auc_no_ga": 0.69, "auc_no_weights": 0.747, "counterfactual": {"1": 3.2, "2": 6.1, "3": 9.3}}, "Nepal": {"auc": 0.69, "auc_ci": [0.635, 0.749], "brier": 0.204, "n_train": 2072, "n_test": 519, "shap_top5": [{"feature": "Maternal height", "value": 0.326}, {"feature": "Wealth factor", "value": 0.294}, {"feature": "Child age", "value": 0.254}, {"feature": "Small at birth", "value": 0.174}, {"feature": "Maternal BMI", "value": 0.169}], "mat_height_rank": 1, "dpd_uncal": 0.386, "dpd_cal": 0.003, "eod_uncal": 0.412, "eod_cal": 0.019, "dpd_reduction": 99.1, "eod_reduction": 95.5, "morans_i": -0.312, "morans_p": 0.023, "obs_pred_r": 0.88, "auc_full": 0.69, "auc_no_anthro": 0.644, "auc_no_ga": 0.708, "auc_no_weights": 0.699, "counterfactual": {"1": 4.7, "2": 9.2, "3": 13.1}}, "Pakistan": {"auc": 0.744, "auc_ci": [0.693, 0.788], "brier": 0.229, "n_train": 3312, "n_test": 829, "shap_top5": [{"feature": "Child age", "value": 0.349}, {"feature": "Maternal height", "value": 0.238}, {"feature": "Wealth factor", "value": 0.215}, {"feature": "Mother's education", "value": 0.185}, {"feature": "Region", "value": 0.173}], "mat_height_rank": 2, "dpd_uncal": 0.161, "dpd_cal": 0.032, "eod_uncal": 0.199, "eod_cal": 0.058, "dpd_reduction": 79.9, "eod_reduction": 70.7, "morans_i": 0.095, "morans_p": 0.043, "obs_pred_r": 0.919, "auc_full": 0.744, "auc_no_anthro": 0.71, "auc_no_ga": 0.716, "auc_no_weights": 0.766, "counterfactual": {"1": 2.7, "2": 5.4, "3": 7.9}}}};
+
+let currentCountry = "Cambodia";
+const ordinal = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
+
+function renderTabs() {
+  const tabs = document.getElementById('country-tabs');
+  tabs.innerHTML = DATA.countries.map(c =>
+    `<button class="${c === currentCountry ? 'active' : ''}" onclick="selectCountry('${c}')">${c}</button>`
+  ).join('');
+}
+
+function selectCountry(c) {
+  currentCountry = c;
+  renderAll();
+}
+
+function renderMetrics() {
+  const d = DATA.per_country[currentCountry];
+  const grid = document.getElementById('metric-grid');
+  grid.innerHTML = `
+    <div class="metric-card">
+      <p class="metric-label">Held-out AUC</p>
+      <p class="metric-value">${d.auc.toFixed(3)}</p>
+      <p class="metric-sub">95% CI [${d.auc_ci[0].toFixed(3)}&ndash;${d.auc_ci[1].toFixed(3)}]</p>
+    </div>
+    <div class="metric-card">
+      <p class="metric-label">Brier score</p>
+      <p class="metric-value">${d.brier.toFixed(3)}</p>
+      <p class="metric-sub">lower is better</p>
+    </div>
+    <div class="metric-card">
+      <p class="metric-label">Maternal height SHAP rank</p>
+      <p class="metric-value">${ordinal[d.mat_height_rank]}</p>
+      <p class="metric-sub">of 23 predictors</p>
+    </div>
+    <div class="metric-card">
+      <p class="metric-label">Sample size</p>
+      <p class="metric-value">${(d.n_train + d.n_test).toLocaleString()}</p>
+      <p class="metric-sub">${d.n_train.toLocaleString()} train / ${d.n_test.toLocaleString()} test</p>
+    </div>
+  `;
+}
+
+function barColor(feature) {
+  return feature.toLowerCase().includes('maternal height') ? 'coral' : 'blue';
+}
+
+function renderShap() {
+  const d = DATA.per_country[currentCountry];
+  const maxVal = Math.max(...d.shap_top5.map(f => f.value), DATA.bangladesh.shap_top5[0].value);
+  const container = document.getElementById('shap-bars');
+  container.innerHTML = d.shap_top5.map(f => {
+    const color = barColor(f.feature);
+    const pct = (f.value / maxVal) * 100;
+    return `<div class="bar-row">
+      <div class="bar-label">${f.feature}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--${color}-bar)"><span>${f.value.toFixed(3)}</span></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('shap-note').textContent =
+    `Maternal height ranks ${ordinal[d.mat_height_rank]} in ${currentCountry} (mean |SHAP| = ${d.shap_top5.find(f=>f.feature==='Maternal height') ? d.shap_top5.find(f=>f.feature==='Maternal height').value.toFixed(3) : 'see Table 9'}). For reference, in the original Bangladesh development cohort maternal height ranked 1st with mean |SHAP| = 0.306, 12.3 times the importance of household wealth.`;
+}
+
+function renderFairness() {
+  const d = DATA.per_country[currentCountry];
+  const calibrated = document.getElementById('fairness-toggle').checked;
+  const container = document.getElementById('fairness-bars');
+  const dpd = calibrated ? d.dpd_cal : d.dpd_uncal;
+  const eod = calibrated ? d.eod_cal : d.eod_uncal;
+  const maxVal = Math.max(d.dpd_uncal, d.eod_uncal);
+  container.innerHTML = `
+    <div class="bar-row">
+      <div class="bar-label">Demographic parity diff.</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(dpd/maxVal)*100}%;background:var(--${calibrated?'teal':'coral'}-bar)"><span>${dpd.toFixed(3)}</span></div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Equalized odds diff.</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(eod/maxVal)*100}%;background:var(--${calibrated?'teal':'coral'}-bar)"><span>${eod.toFixed(3)}</span></div></div>
+    </div>
+  `;
+  document.getElementById('fairness-note').textContent = calibrated
+    ? `After per-quintile calibration: DPD reduced by ${d.dpd_reduction}%, EOD reduced by ${d.eod_reduction}% relative to the uncalibrated model. AUC is unchanged by calibration (alters thresholds only).`
+    : `Before calibration. Toggle above to see the dramatic reduction in both metrics after per-wealth-quintile threshold calibration is applied.`;
+}
+
+function renderAblation() {
+  const d = DATA.per_country[currentCountry];
+  const rows = [
+    { label: "Full SAFE-XAI", value: d.auc_full, color: "teal" },
+    { label: "&minus; survey weights", value: d.auc_no_weights, color: "blue" },
+    { label: "&minus; maternal anthro.", value: d.auc_no_anthro, color: "coral" },
+    { label: "&minus; GA optimization", value: d.auc_no_ga, color: "amber" },
+  ];
+  const maxVal = Math.max(...rows.map(r => r.value)) * 1.05;
+  document.getElementById('ablation-bars').innerHTML = rows.map(r =>
+    `<div class="bar-row">
+      <div class="bar-label">${r.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(r.value/maxVal)*100}%;background:var(--${r.color}-bar)"><span>${r.value.toFixed(3)}</span></div></div>
+    </div>`
+  ).join('');
+}
+
+function renderScenario() {
+  const d = DATA.per_country[currentCountry];
+  const cm = document.getElementById('height-slider').value;
+  document.getElementById('height-val').textContent = `+${cm} cm`;
+  const reduction = d.counterfactual[cm];
+  document.getElementById('scenario-result').innerHTML = `
+    <div class="metric-grid" style="margin-bottom:0">
+      <div class="metric-card">
+        <p class="metric-label">Predicted relative reduction in stunting prevalence</p>
+        <p class="metric-value" style="color:var(--teal)">${reduction.toFixed(1)}%</p>
+        <p class="metric-sub">in ${currentCountry}, if mean maternal height rose by ${cm} cm, all else held fixed</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderSpatial() {
+  const d = DATA.per_country[currentCountry];
+  const sig = d.morans_p < 0.05;
+  document.getElementById('spatial-result').innerHTML = `
+    <div class="metric-grid" style="margin-bottom:0">
+      <div class="metric-card">
+        <p class="metric-label">Observed-predicted correlation (r)</p>
+        <p class="metric-value">${d.obs_pred_r.toFixed(3)}</p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">Moran's I (residual clustering)</p>
+        <p class="metric-value">${d.morans_i.toFixed(3)}</p>
+        <p class="metric-sub"><span class="badge ${sig ? 'sig-yes' : 'sig-no'}">${sig ? 'Significant, p=' + d.morans_p.toFixed(3) : 'Not significant, p=' + d.morans_p.toFixed(3)}</span></p>
+      </div>
+    </div>
+  `;
+}
+
+function renderAll() {
+  renderTabs();
+  renderMetrics();
+  renderShap();
+  renderFairness();
+  renderAblation();
+  renderScenario();
+  renderSpatial();
+}
+
+renderAll();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S1 Interactive Methodology — SAFE-XAI Pipeline</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f4f3f0;
+    --text: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-tertiary: #888780;
+    --border: #d3d1c7;
+    --accent-blue: #185fa5;
+    --accent-blue-bg: #e6f1fb;
+    --accent-teal: #0f6e56;
+    --accent-teal-bg: #e1f5ee;
+    --accent-coral: #993c1d;
+    --accent-coral-bg: #faece7;
+    --accent-purple: #534ab7;
+    --accent-purple-bg: #eeedfe;
+    --accent-pink: #993556;
+    --accent-pink-bg: #fbeaf0;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg-secondary: #2a2a27;
+      --text: #ece9e0;
+      --text-secondary: #b4b2a9;
+      --text-tertiary: #888780;
+      --border: #444441;
+      --accent-blue: #85b7eb;
+      --accent-blue-bg: #0c447c;
+      --accent-teal: #5dcaa5;
+      --accent-teal-bg: #085041;
+      --accent-coral: #f0997b;
+      --accent-coral-bg: #712b13;
+      --accent-purple: #afa9ec;
+      --accent-purple-bg: #3c3489;
+      --accent-pink: #ed93b1;
+      --accent-pink-bg: #72243e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    line-height: 1.6;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 1.5rem; }
+  .instructions { font-size: 13px; color: var(--text-secondary); margin-bottom: 1.5rem; padding: 10px 14px; background: var(--bg-secondary); border-radius: var(--radius); }
+  #stage-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.5rem; }
+  #stage-nav button {
+    font-size: 12px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer; font-weight: 500;
+    transition: all 0.15s;
+  }
+  #stage-nav button:hover { background: var(--bg-secondary); }
+  #stage-nav button.active { border-color: var(--accent-blue); background: var(--accent-blue-bg); color: var(--accent-blue); }
+  #stage-panel {
+    background: var(--bg-secondary); border-radius: var(--radius); padding: 1.5rem 1.75rem;
+    min-height: 200px;
+  }
+  .badge {
+    display: inline-block; padding: 3px 12px; border-radius: 6px; font-size: 12px;
+    font-weight: 500; margin-bottom: 12px;
+  }
+  #stage-panel h2 { font-size: 18px; font-weight: 600; margin: 0 0 10px; }
+  #stage-panel p { margin: 0 0 10px; font-size: 15px; }
+  #stage-panel .detail { font-size: 13px; color: var(--text-tertiary); margin: 0; }
+  .nav-buttons { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; }
+  .nav-buttons button {
+    font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer; font-weight: 500;
+  }
+  .nav-buttons button:hover:not(:disabled) { background: var(--bg-secondary); }
+  .nav-buttons button:disabled { opacity: 0.4; cursor: default; }
+  .nav-buttons span { font-size: 13px; color: var(--text-tertiary); }
+  .progress-track {
+    width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent-blue); border-radius: 2px; transition: width 0.25s;
+  }
+  .footer-note { font-size: 12px; color: var(--text-tertiary); margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .flow-diagram { display: flex; flex-wrap: wrap; gap: 8px; margin: 1.5rem 0 2rem; }
+  .flow-box {
+    flex: 1 1 130px; min-width: 110px; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .flow-box:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .flow-box.current { border-width: 2px; border-color: var(--accent-blue); }
+  .flow-arrow { display: flex; align-items: center; color: var(--text-tertiary); font-size: 16px; padding: 0 2px; }
+  @media (max-width: 600px) {
+    .flow-diagram { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>S1 Interactive methodology — the SAFE-XAI pipeline</h1>
+<p class="subtitle">Survey-Aware Fairness-Constrained Evolutionary Explainable AI: an interactive walkthrough of the eleven-stage analytic pipeline applied identically across all five countries (Bangladesh development cohort; Cambodia, Myanmar, Nepal, Pakistan external validation; Indonesia assessed and excluded at Stage 3).</p>
+
+<div class="instructions">Click any numbered stage below, or use the flow diagram, to see what happens at that step of the pipeline and how it was validated. Use Previous/Next to step through sequentially.</div>
+
+<div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+
+<div id="stage-nav"></div>
+
+<div id="stage-panel"></div>
+
+<div class="nav-buttons">
+  <button id="prev-btn" onclick="navStage(-1)">&larr; Previous</button>
+  <span id="stage-counter"></span>
+  <button id="next-btn" onclick="navStage(1)">Next &rarr;</button>
+</div>
+
+<div class="footer-note">
+  This interactive file accompanies "Survey-weighted machine learning with maternal anthropometry and fairness constraints for childhood stunting: A five-country South and Southeast Asian DHS validation, 2011&ndash;2022" (Saha &amp; Rana, submitted to PLOS Global Public Health, 2026). All numerical results shown here match the values reported in the main manuscript text and Tables 2&ndash;14. This file requires no internet connection or external dependencies and can be opened directly in any modern web browser.
+</div>
+
+<script>
+const stages = [
+  {
+    title: "Data acquisition",
+    subtitle: "Six DHS country-rounds",
+    color: "blue",
+    body: "Registered access obtained to Bangladesh (2011, 2014, 2017, 2022), Cambodia (2021&ndash;22), Myanmar (2015&ndash;16), Nepal (2022), Pakistan (2017&ndash;18), and Indonesia (2017) Demographic and Health Survey datasets via the DHS Program (ICF International).",
+    detail: "Each country survey uses two-stage stratified cluster sampling: enumeration areas (clusters) are sampled within strata at the first stage, and households are sampled within selected clusters at the second stage."
+  },
+  {
+    title: "Eligibility filter",
+    subtitle: "Identical across all countries",
+    color: "blue",
+    body: "Children are retained if: alive at the time of survey (DHS variable B5 = 1), aged 0 to 59 completed months (HW1), and the height-for-age z-score (HAZ) measurement is not flagged as implausible by the DHS Program's standard range check.",
+    detail: "This eligibility definition is applied identically and without modification in all six country-rounds &mdash; there is no country-specific eligibility tuning anywhere in the pipeline."
+  },
+  {
+    title: "Data-quality check",
+    subtitle: "Pre-registered, transparent exclusions",
+    color: "coral",
+    body: "Indonesia 2017 is excluded from modeling: the anthropometric module (maternal height, maternal BMI, child HAZ) was not fielded in this survey round &mdash; confirmed at 100% missing by direct inspection of the official Stata codebook, not assumed. Pakistan: cluster-altitude data is 100% missing in the 2017&ndash;18 Household Recode and is excluded from imputation for Pakistan specifically.",
+    detail: "Both exclusions are verified programmatically and reported transparently in the manuscript rather than silently dropped or smoothed over."
+  },
+  {
+    title: "Feature engineering",
+    subtitle: "23-predictor harmonized set",
+    color: "blue",
+    body: "Predictors span seven conceptual domains: child characteristics, maternal anthropometry (height, body mass index, height-squared), maternal sociodemographics, antenatal-care and delivery characteristics, household water/sanitation/hygiene and assets, and household wealth and geography.",
+    detail: "The Bangladesh development cohort additionally uses a fuller 51-feature specification from the original single-country study; the 23-feature subset shown here is the cross-country-comparable harmonization confirmed present and non-degenerate in all four external countries."
+  },
+  {
+    title: "Multiple imputation",
+    subtitle: "MICE, M = 5, Rubin's rules",
+    color: "teal",
+    body: "Multiple Imputation by Chained Equations using scikit-learn's IterativeImputer with Bayesian ridge regression as the conditional estimator and sample_posterior = True, producing five genuinely distinct stochastic imputed datasets rather than repeated deterministic point estimates. Each imputed value is clipped to the observed minimum and maximum of that feature.",
+    detail: "The imputer is fit on the training partition only and applied without refitting to the held-out test partition, preventing information leakage between train and test."
+  },
+  {
+    title: "GA-optimized XGBoost",
+    subtitle: "Survey-weighted 5-fold cross-validation",
+    color: "teal",
+    body: "A genetic algorithm (population 50, generations 45) directly maximizes survey-weighted five-fold cross-validated AUC. Each chromosome encodes ten XGBoost hyperparameters: number of estimators, max depth, learning rate, subsample ratio, column-subsample ratio, minimum child weight, gamma, L1/L2 regularization, and positive-class scale weight.",
+    detail: "Operators: tournament selection (size 3), two-point crossover (probability 0.6), uniform integer mutation (probability 0.25 per gene), Hall-of-Fame elitism."
+  },
+  {
+    title: "Random-search diagnostic",
+    subtitle: "Verifying genuine convergence",
+    color: "teal",
+    body: "An undirected random search consuming an equal-or-greater computational budget is run alongside the genetic algorithm in every country, to test whether GA's comparatively small absolute performance gains in smaller cohorts reflect a converged search or a stalled one.",
+    detail: "Result: GA outperformed the equal-budget random search in all four external validation countries (Cambodia, Myanmar, Nepal, Pakistan) &mdash; confirming genuine convergence to a strong region of hyperparameter space, not a failed search."
+  },
+  {
+    title: "Survey-weighted evaluation",
+    subtitle: "PSU-cluster bootstrap, B = 500",
+    color: "purple",
+    body: "All discrimination metrics (AUC, Brier score) use individual DHS survey weights. Ninety-five percent confidence intervals are constructed from a 500-replicate primary-sampling-unit (PSU) cluster bootstrap that respects each country's stratified, multi-stage sampling design.",
+    detail: "Ablation evidence: removing survey weights inflated AUC in three of four external countries, in the expected direction given known design-effect inflation &mdash; directly validating the necessity of this step."
+  },
+  {
+    title: "SHAP feature attribution",
+    subtitle: "TreeSHAP global importance",
+    color: "purple",
+    body: "Exact Shapley values are computed for the fitted gradient-boosting model using TreeSHAP. Global feature importance is the mean absolute Shapley value across the evaluation sample. Cross-fold and cross-country coefficients of variation quantify the stability of each feature's importance.",
+    detail: "Headline result: maternal height ranked 1st to 3rd by SHAP importance in every one of the four external validation countries, with a cross-country coefficient of variation of 34.6%."
+  },
+  {
+    title: "Fairness calibration",
+    subtitle: "Per-quintile threshold tuning",
+    color: "pink",
+    body: "Post-hoc threshold calibration is applied independently within each wealth quintile, targeting an equalized true positive rate. This alters only the binary decision threshold applied per quintile &mdash; the underlying continuous risk score, and therefore the AUC, is unchanged by construction.",
+    detail: "Result: demographic parity differences were reduced by 76.2% to 99.1% across all five countries, with zero measurable cost to discriminative accuracy."
+  },
+  {
+    title: "Spatial &amp; scenario analysis",
+    subtitle: "Moran's I and model-implied projection",
+    color: "pink",
+    body: "Geographic Positioning System cluster coordinates are used to build a region-level (or, for Bangladesh, district-level) vulnerability atlas. Moran's I tests whether model residuals cluster spatially beyond individual- and household-level covariates. A separate, explicitly non-causal scenario analysis projects the population-level change in predicted stunting prevalence under hypothetical increases in maternal height, holding all else fixed.",
+    detail: "Significant residual spatial clustering was found in two of four external countries (Nepal, Pakistan). A model-implied 2 cm increase in maternal height was associated with a 6.5% average relative reduction in predicted stunting prevalence across the four countries &mdash; a ceteris-paribus projection, not a causal treatment-effect estimate."
+  }
+];
+
+const colorMap = {
+  blue:   { fg: "var(--accent-blue)",   bg: "var(--accent-blue-bg)" },
+  teal:   { fg: "var(--accent-teal)",   bg: "var(--accent-teal-bg)" },
+  coral:  { fg: "var(--accent-coral)",  bg: "var(--accent-coral-bg)" },
+  purple: { fg: "var(--accent-purple)", bg: "var(--accent-purple-bg)" },
+  pink:   { fg: "var(--accent-pink)",   bg: "var(--accent-pink-bg)" }
+};
+
+let current = 0;
+
+function renderNav() {
+  const nav = document.getElementById('stage-nav');
+  nav.innerHTML = stages.map((s, i) =>
+    `<button onclick="goToStage(${i})" class="${i === current ? 'active' : ''}">${i + 1}. ${s.title}</button>`
+  ).join('');
+}
+
+function renderPanel() {
+  const s = stages[current];
+  const c = colorMap[s.color];
+  const panel = document.getElementById('stage-panel');
+  panel.innerHTML = `
+    <div class="badge" style="background:${c.bg};color:${c.fg}">${s.subtitle}</div>
+    <h2>${s.title}</h2>
+    <p>${s.body}</p>
+    <p class="detail">${s.detail}</p>
+  `;
+  document.getElementById('stage-counter').textContent = `Stage ${current + 1} of ${stages.length}`;
+  document.getElementById('prev-btn').disabled = current === 0;
+  document.getElementById('next-btn').disabled = current === stages.length - 1;
+  document.getElementById('progress-fill').style.width = `${((current + 1) / stages.length) * 100}%`;
+  renderNav();
+}
+
+function navStage(delta) {
+  current = Math.max(0, Math.min(stages.length - 1, current + delta));
+  renderPanel();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToStage(i) {
+  current = i;
+  renderPanel();
+}
+
+renderPanel();
+</script>
+
+</body>
+</html>
